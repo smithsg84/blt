@@ -15,27 +15,58 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <iostream>
-#include "cuda_runtime_api.h"
-#include <stdio.h>
+#include <cstdio>
+#include <cuda_runtime.h>
+
+static bool checkCuda(cudaError_t err, const char* what)
+{
+  if (err != cudaSuccess) {
+    std::printf("%s failed: %s\n", what, cudaGetErrorString(err));
+    return false;
+  }
+  return true;
+}
 
 int main()
 {
-  int nDevices;
+  int nDevices = 0;
+  if (!checkCuda(cudaGetDeviceCount(&nDevices), "cudaGetDeviceCount")) {
+    return 1;
+  }
 
-  cudaGetDeviceCount(&nDevices);
-  for (int i = 0; i < nDevices; i++)
+  for (int i = 0; i < nDevices; ++i)
   {
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, i);
-    printf("Device Number: %d\n", i);
-    printf("  Device name: %s\n", prop.name);
-    printf("  Memory Clock Rate (KHz): %d\n",
-           prop.memoryClockRate);
-    printf("  Memory Bus Width (bits): %d\n",
-           prop.memoryBusWidth);
-    printf("  Peak Memory Bandwidth (GB/s): %f\n\n",
-           2.0*prop.memoryClockRate*(prop.memoryBusWidth/8)/1.0e6);
+    cudaDeviceProp prop{};
+    if (!checkCuda(cudaGetDeviceProperties(&prop, i), "cudaGetDeviceProperties")) {
+      continue;
+    }
+
+    int memoryClockRateKHz = 0;
+    int memoryBusWidthBits = 0;
+
+    if (!checkCuda(cudaDeviceGetAttribute(&memoryClockRateKHz,
+                                          cudaDevAttrMemoryClockRate,
+                                          i),
+                   "cudaDeviceGetAttribute(cudaDevAttrMemoryClockRate)")) {
+      continue;
+    }
+
+    if (!checkCuda(cudaDeviceGetAttribute(&memoryBusWidthBits,
+                                          cudaDevAttrGlobalMemoryBusWidth,
+                                          i),
+                   "cudaDeviceGetAttribute(cudaDevAttrGlobalMemoryBusWidth)")) {
+      continue;
+    }
+
+    double peakBandwidthGBs =
+      2.0 * static_cast<double>(memoryClockRateKHz) *
+      (static_cast<double>(memoryBusWidthBits) / 8.0) / 1.0e6;
+
+    std::printf("Device Number: %d\n", i);
+    std::printf("  Device name: %s\n", prop.name);
+    std::printf("  Memory Clock Rate (KHz): %d\n", memoryClockRateKHz);
+    std::printf("  Memory Bus Width (bits): %d\n", memoryBusWidthBits);
+    std::printf("  Peak Memory Bandwidth (GB/s): %f\n\n", peakBandwidthGBs);
   }
 
   return 0;
