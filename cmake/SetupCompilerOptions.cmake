@@ -303,13 +303,13 @@ blt_append_custom_compiler_flag(
 
 if ( COMPILER_FAMILY_IS_MSVC AND NOT BUILD_SHARED_LIBS )
   if ( BLT_ENABLE_MSVC_STATIC_MD_TO_MT )
-    foreach(_lang C CXX)
+    foreach(_lang C CXX CUDA)
       foreach(_build
               FLAGS FLAGS_DEBUG FLAGS_RELEASE
               FLAGS_MINSIZEREL FLAGS_RELWITHDEBINFO)
           set(_flag CMAKE_${_lang}_${_build})
-          if(${_flag} MATCHES "/MD")
-              string(REGEX REPLACE "/MD" "/MT" ${_flag} "${${_flag}}")
+          if("${${_flag}}" MATCHES "[-/]MD")
+              string(REGEX REPLACE "[-/]MD" "/MT" ${_flag} "${${_flag}}")
           endif()
       endforeach()
     endforeach()

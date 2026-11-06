@@ -112,9 +112,20 @@ if(ENABLE_TESTS)
         # For more info see: https://github.com/LLNL/blt/issues/79
         # 
         
-        blt_append_custom_compiler_flag( FLAGS_VAR gtest_extra_flags
-                                         DEFAULT " " 
-                                         MSVC  "/wd4251" "/wd4275" )
+        # SGS NVCC does not parse / arguments correctly, interprets as file
+        if(MSVC AND ENABLE_CUDA)
+           # For CUDA nvcc compiler pass arg to MSVCC with -Xcompiler
+           set(gtest_extra_flags
+              "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/wd4251>"
+              "$<$<NOT:$<COMPILE_LANGUAGE:CUDA>>:/wd4275>"
+              "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4251>"
+              "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4275>"
+              )
+         else()
+           blt_append_custom_compiler_flag( FLAGS_VAR gtest_extra_flags
+                                            DEFAULT " "
+                                            MSVC  "/wd4251" "/wd4275" )
+         endif()
 
         set (INSTALL_GMOCK OFF CACHE BOOL "")
         set (INSTALL_GTEST OFF CACHE BOOL "")
